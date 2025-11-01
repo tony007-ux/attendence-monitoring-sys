@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Attendance Tracking - Attendance System</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- TensorFlow.js and face-api.js from CDN -->
+    <!-- Use TensorFlow.js 2.x for compatibility with face-api.js 0.22.2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.11.0/dist/tf.min.js"></script>
+    <!-- Try multiple CDNs for face-api.js -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js" 
+            onerror="this.onerror=null; this.src='https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js';">
+    </script>
+    <script>
+        // Verify face-api.js loaded
+        let faceApiCheckInterval = setInterval(() => {
+            if (typeof faceapi !== 'undefined') {
+                console.log('✅ face-api.js loaded successfully');
+                clearInterval(faceApiCheckInterval);
+                window.faceApiReady = true;
+            }
+        }, 100);
+        
+        // Timeout after 10 seconds
+        setTimeout(() => {
+            if (typeof faceapi === 'undefined') {
+                console.error('❌ face-api.js failed to load from CDN');
+                alert('Failed to load face-api.js library. Please check your internet connection and refresh the page.');
+            }
+            clearInterval(faceApiCheckInterval);
+        }, 10000);
+    </script>
+    <!-- 
+        Note: For production use, download face-api.js models from:
+        https://github.com/justadudewhohacks/face-api.js-models
+        and host them in a /models directory for better performance
+    -->
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📹 Live Attendance Tracking</h1>
+            <p class="subtitle">Real-time face recognition and attendance monitoring</p>
+        </header>
+
+        <nav class="nav">
+            <a href="/">Home</a>
+            <a href="/register">Register</a>
+            <a href="/admin">Admin</a>
+            <a href="/analytics">Analytics</a>
+        </nav>
+
+        <div id="alert-container"></div>
+
+        <!-- Control Panel -->
+        <div class="form-container" style="margin-bottom: 30px;">
+            <h2 style="margin-bottom: 20px; color: #667eea;">Monitoring Control</h2>
+            
+            <!-- Settings Panel -->
+            <div id="settingsPanel" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <h3 style="margin-bottom: 15px; color: #667eea; font-size: 1.1rem;">⚙️ Monitoring Settings</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="detectionThreshold">Face Recognition Threshold</label>
+                        <input type="range" id="detectionThreshold" min="0.4" max="0.8" step="0.05" value="0.6">
+                        <span id="thresholdValue" style="color: #667eea; font-weight: bold;">0.60</span>
+                        <small style="display: block; color: #666; margin-top: 5px;">Lower = more lenient, Higher = stricter</small>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="presencePercentage">Minimum Presence %</label>
+                        <input type="range" id="presencePercentage" min="50" max="90" step="5" value="75">
+                        <span id="presenceValue" style="color: #667eea; font-weight: bold;">75%</span>
+                        <small style="display: block; color: #666; margin-top: 5px;">Required % of class time to be marked Present</small>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>
+                            <input type="checkbox" id="showBoundingBoxes" checked>
+                            Show Face Bounding Boxes
+                        </label>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>
+                            <input type="checkbox" id="autoSaveAttendance" checked>
+                            Auto-save Attendance
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Class Selection -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label for="selectedClass">Select Class</label>
+                    <select id="selectedClass" style="margin-bottom: 0;">
+                        <option value="">Loading classes...</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button id="startMonitoringBtn" class="btn" disabled>Start Monitoring</button>
+                    <button id="stopMonitoringBtn" class="btn btn-secondary" style="display: none; margin-left: 10px;">Stop Monitoring</button>
+                </div>
+            </div>
+            <div id="monitoringStatus" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                <strong>Status:</strong> <span id="statusText">Not monitoring</span>
+            </div>
+        </div>
+
+        <!-- Video Feed -->
+        <div class="form-container" style="margin-bottom: 30px;">
+            <h2 style="margin-bottom: 20px; color: #667eea;">Live Video Feed</h2>
+            <div class="video-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="overlay"></canvas>
+            </div>
+        </div>
+
+        <!-- Detected Students -->
+        <div class="table-container">
+            <h2 style="margin-bottom: 20px; color: #667eea;">Detected Students</h2>
+            <div id="detectedStudents">
+                <p style="text-align: center; color: #666;">No students detected yet. Start monitoring to begin.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/live.js"></script>
+</body>
+</html>
+

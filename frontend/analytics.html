@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Attendance System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Student Efficiency Analytics</h1>
+            <p class="subtitle">View attendance efficiency and statistics</p>
+        </header>
+
+        <nav class="nav">
+            <a href="/">Home</a>
+            <a href="/register">Register</a>
+            <a href="/admin">Admin</a>
+            <a href="/live">Live Tracking</a>
+        </nav>
+
+        <div id="alert-container"></div>
+
+        <!-- Search Section -->
+        <div class="form-container" style="margin-bottom: 30px;">
+            <h2 style="margin-bottom: 20px; color: #667eea;">Search Student</h2>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label for="searchRollNumber">Roll Number</label>
+                    <input type="text" id="searchRollNumber" placeholder="Enter roll number (e.g., CS2024001)">
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button id="searchBtn" class="btn">Search</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Students Efficiency -->
+        <div class="table-container">
+            <h2 style="margin-bottom: 20px; color: #667eea;">All Students Efficiency</h2>
+            <button id="loadAllBtn" class="btn" style="width: auto; margin-bottom: 15px;">Load All Students</button>
+            <div id="allStudentsEfficiency">
+                <p style="text-align: center; color: #666;">Click "Load All Students" to view efficiency data.</p>
+            </div>
+        </div>
+
+        <!-- Individual Student Details -->
+        <div id="studentDetails" style="display: none; margin-top: 30px;">
+            <div class="form-container">
+                <h2 style="margin-bottom: 20px; color: #667eea;">Student Details</h2>
+                <div id="studentInfo"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/analytics.js"></script>
+</body>
+</html>
+
