@@ -126,14 +126,11 @@ async function handleRegistration(e) {
         
         if (response.ok) {
             showAlert(`✅ ${data.message}`, 'success');
+    
+            // Show custom popup modal
+            showSuccessModal(formData.name, formData.rollNumber, formData.className);
             
-            // Reset form after 2 seconds
-            setTimeout(() => {
-                document.getElementById('registrationForm').reset();
-                retakeCapture();
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Register Student';
-            }, 2000);
+            // Reset form after modal is closed (handled by the modal button)
         } else {
             showAlert(`❌ Error: ${data.error}`, 'error');
             submitBtn.disabled = false;
@@ -170,4 +167,24 @@ window.addEventListener('beforeunload', () => {
         stream.getTracks().forEach(track => track.stop());
     }
 });
+/**
+ * Show success modal with student details
+ */
+function showSuccessModal(name, rollNumber, className) {
+    document.getElementById('modalStudentName').textContent = name;
+    document.getElementById('modalRollNumber').textContent = rollNumber;
+    document.getElementById('modalClassName').textContent = className;
+    document.getElementById('successModal').style.display = 'block';
+}
 
+/**
+ * Close success modal and reset form
+ */
+function closeSuccessModal() {
+    document.getElementById('successModal').style.display = 'none';
+    document.getElementById('registrationForm').reset();
+    retakeCapture();
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Register Student';
+}

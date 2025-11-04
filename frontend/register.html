@@ -64,6 +64,19 @@
             </form>
         </div>
     </div>
+    <!-- Registration Success Modal -->
+<div id="successModal" class="success-modal">
+    <div class="success-modal-content">
+        <h2>🎉 Registration Completed!</h2>
+        <div class="student-info">
+            <p><strong>Name:</strong> <span id="modalStudentName"></span></p>
+            <p><strong>Roll Number:</strong> <span id="modalRollNumber"></span></p>
+            <p><strong>Class:</strong> <span id="modalClassName"></span></p>
+        </div>
+        <p style="color: #4CAF50; font-weight: bold;">Student registered successfully!</p>
+        <button onclick="closeSuccessModal()">OK</button>
+    </div>
+</div>
 
     <script src="js/register.js"></script>
 </body>

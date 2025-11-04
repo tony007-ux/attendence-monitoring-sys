@@ -8,7 +8,7 @@ let stream = null;
 let isMonitoring = false;
 let faceMatcher = null;
 let students = [];
-let detectedStudents = new Map(); // rollNumber -> { duration, startTime, detections }
+let detectedStudents = new Map(); // rollNumber -> { duration, startTime, detections, engagement }
 let monitoringInterval = null;
 let currentClassId = null;
 let currentClassName = null;
@@ -625,16 +625,36 @@ async function detectFaces() {
                         duration: 0,
                         startTime: now,
                         lastSeen: now,
-                        detections: []
+                        detections: [],
+                        engagement: {
+                            lookingForward: 0,
+                            lookingAway: 0,
+                            totalFrames: 0,
+                            score: 0
+                        }
                     });
                 }
                 
                 const studentData = detectedStudents.get(rollNumber);
                 studentData.lastSeen = now;
                 studentData.duration = Math.floor((now - studentData.startTime) / 1000);
-                studentData.detections.push({
-                    timestamp: new Date(),
-                    confidence: 1 - bestMatch.distance
+
+                // Calculate engagement based on head pose
+                const headPose = calculateHeadPose(detection.landmarks);
+                const isEngaged = headPose.isLookingForward;
+
+                if (isEngaged) {
+                   studentData.engagement.lookingForward++;
+                } else {
+                   studentData.engagement.lookingAway++;
+                }
+                   studentData.engagement.totalFrames++;
+                   studentData.engagement.score = Math.round((studentData.engagement.lookingForward / studentData.engagement.totalFrames) * 100);
+
+                   studentData.detections.push({
+                   timestamp: new Date(),
+                   confidence: 1 - bestMatch.distance,
+                   engagement: isEngaged
                 });
                 
                 // Draw detection box (only if enabled in settings)
@@ -644,10 +664,17 @@ async function detectFaces() {
                     ctx.lineWidth = 2;
                     ctx.strokeRect(box.x, box.y, box.width, box.height);
                     
-                    // Draw label
-                    ctx.fillStyle = '#00ff00';
-                    ctx.font = '16px Arial';
-                    ctx.fillText(`${student ? student.name : rollNumber}`, box.x, box.y - 5);
+                    // Draw label with engagement
+const engagementScore = studentData.engagement.score || 0;
+const engagementColor = engagementScore >= 80 ? '#00ff00' : 
+                        engagementScore >= 50 ? '#ffa500' : '#ff0000';
+
+ctx.fillStyle = engagementColor;
+ctx.font = '16px Arial';
+ctx.fillText(`${student ? student.name : rollNumber} - ${engagementScore}%`, box.x, box.y - 5);
+
+// Change box color based on engagement
+ctx.strokeStyle = engagementColor;
                 }
             }
         });
@@ -662,6 +689,43 @@ async function detectFaces() {
         requestAnimationFrame(detectFaces);
     }
 }
+/**
+ * Calculate head pose from facial landmarks
+ * Determines if student is looking forward or away
+ */
+function calculateHeadPose(landmarks) {
+    // Get key facial points
+    const nose = landmarks.positions[30]; // Nose tip
+    const leftEye = landmarks.positions[36]; // Left eye outer corner
+    const rightEye = landmarks.positions[45]; // Right eye outer corner
+    const leftMouth = landmarks.positions[48]; // Left mouth corner
+    const rightMouth = landmarks.positions[54]; // Right mouth corner
+    
+    // Calculate face center
+    const faceCenter = {
+        x: (leftEye.x + rightEye.x) / 2,
+        y: (leftEye.y + rightEye.y) / 2
+    };
+    
+    // Calculate horizontal deviation (how far nose is from center)
+    const horizontalDeviation = Math.abs(nose.x - faceCenter.x);
+    const eyeDistance = Math.abs(rightEye.x - leftEye.x);
+    const deviationRatio = horizontalDeviation / eyeDistance;
+    
+    // Calculate vertical tilt
+    const verticalDeviation = Math.abs(nose.y - faceCenter.y);
+    const verticalRatio = verticalDeviation / eyeDistance;
+    
+    // Thresholds for "looking forward"
+    const isLookingForward = deviationRatio < 0.3 && verticalRatio < 0.5;
+    
+    return {
+        isLookingForward,
+        horizontalDeviation: deviationRatio,
+        verticalDeviation: verticalRatio,
+        direction: deviationRatio < 0.3 ? 'forward' : (nose.x > faceCenter.x ? 'right' : 'left')
+    };
+}
 
 /**
  * Update detected students display
@@ -674,7 +738,7 @@ function updateDetectedStudentsDisplay() {
         return;
     }
     
-    let html = '<table><thead><tr><th>Roll Number</th><th>Name</th><th>Presence Duration</th><th>Status</th></tr></thead><tbody>';
+    let html = '<table><thead><tr><th>Roll Number</th><th>Name</th><th>Presence Duration</th><th>Engagement</th><th>Status</th></tr></thead><tbody>';
     
         detectedStudents.forEach((data, rollNumber) => {
             const student = students.find(s => s.rollNumber === rollNumber);
@@ -684,14 +748,28 @@ function updateDetectedStudentsDisplay() {
         const statusClass = isPresent ? 'status-present' : 'status-absent';
         const statusText = isPresent ? 'Present' : 'Absent';
         
-        html += `
-            <tr>
-                <td>${rollNumber}</td>
-                <td>${student ? student.name : 'Unknown'}</td>
-                <td>${Math.floor(data.duration / 60)}m ${data.duration % 60}s (${presencePercent.toFixed(1)}%)</td>
-                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-            </tr>
-        `;
+        const engagementScore = data.engagement.score || 0;
+const engagementClass = engagementScore >= 80 ? 'engagement-high' : 
+                        engagementScore >= 50 ? 'engagement-medium' : 'engagement-low';
+const engagementColor = engagementScore >= 80 ? '#00ff00' : 
+                        engagementScore >= 50 ? '#ffa500' : '#ff0000';
+
+html += `
+    <tr>
+        <td>${rollNumber}</td>
+        <td>${student ? student.name : 'Unknown'}</td>
+        <td>${Math.floor(data.duration / 60)}m ${data.duration % 60}s (${presencePercent.toFixed(1)}%)</td>
+        <td>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 100%; background: #e0e0e0; border-radius: 10px; height: 20px; overflow: hidden;">
+                    <div style="width: ${engagementScore}%; background: ${engagementColor}; height: 100%; transition: width 0.3s;"></div>
+                </div>
+                <span style="color: ${engagementColor}; font-weight: bold; min-width: 45px;">${engagementScore}%</span>
+            </div>
+        </td>
+        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+    </tr>
+`;
     });
     
     html += '</tbody></table>';
@@ -719,7 +797,9 @@ async function markAttendanceForAll() {
                     classId: currentClassId,
                     presenceDuration: data.duration,
                     classDuration: classDuration,
-                    detections: data.detections
+                    detections: data.detections,
+                    engagementScore: data.engagement.score,
+                    engagementData: data.engagement
                 })
             });
         } catch (error) {

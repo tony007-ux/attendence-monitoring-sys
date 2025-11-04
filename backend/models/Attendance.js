@@ -53,8 +53,21 @@ const attendanceSchema = new mongoose.Schema({
   },
   detectionLog: [{
     timestamp: Date,
-    confidence: Number
-  }]
+    confidence: Number,
+    engagement: Boolean  // Add engagement tracking per detection
+}],
+engagementScore: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+},
+engagementData: {
+    lookingForward: { type: Number, default: 0 },
+    lookingAway: { type: Number, default: 0 },
+    totalFrames: { type: Number, default: 0 },
+    score: { type: Number, default: 0 }
+}
 }, {
   timestamps: true
 });

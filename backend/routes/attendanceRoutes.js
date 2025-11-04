@@ -12,7 +12,7 @@ const Class = require('../models/Class');
 // Mark attendance for a student
 router.post('/mark', async (req, res) => {
   try {
-    const { studentId, rollNumber, className, classId, presenceDuration, classDuration, detections } = req.body;
+    const { studentId, rollNumber, className, classId, presenceDuration, classDuration, detections, engagementScore, engagementData } = req.body;
 
     // Validation
     if (!studentId || !rollNumber || !className || !classId || !classDuration) {
@@ -40,25 +40,32 @@ router.post('/mark', async (req, res) => {
 
     const attendance = await Attendance.findOneAndUpdate(
       {
-        studentId: studentId,
-        classId: classId,
-        date: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
+          studentId: studentId,
+          classId: classId,
+          date: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
       },
       {
-        rollNumber: rollNumber,
-        studentName: student.name,
-        className: className,
-        status: status,
-        presenceDuration: presenceSec,
-        requiredDuration: requiredDuration,
-        classDuration: classDuration,
-        detectionLog: detections || []
+          rollNumber: rollNumber,
+          studentName: student.name,
+          className: className,
+          status: status,
+          presenceDuration: presenceSec,
+          requiredDuration: requiredDuration,
+          classDuration: classDuration,
+          detectionLog: detections || [],
+          engagementScore: engagementScore || 0,
+          engagementData: engagementData || { 
+              lookingForward: 0, 
+              lookingAway: 0, 
+              totalFrames: 0, 
+              score: 0 
+          }
       },
       {
-        upsert: true,
-        new: true
+          upsert: true,
+          new: true
       }
-    );
+  );
 
     res.json({ 
       message: 'Attendance marked successfully',

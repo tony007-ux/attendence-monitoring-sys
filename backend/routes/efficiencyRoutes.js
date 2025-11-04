@@ -1,6 +1,6 @@
 /**
  * Efficiency Routes
- * Handles student efficiency calculations
+ * Handles student efficiency and engagement calculations
  */
 
 const express = require('express');
@@ -36,6 +36,15 @@ router.get('/:studentId', async (req, res) => {
     const classesAttended = attendanceRecords.filter(a => a.status === 'Present').length;
     const efficiency = totalClasses > 0 ? (classesAttended / totalClasses) * 100 : 0;
 
+    // Calculate average engagement (only for attended classes)
+    const attendedRecords = attendanceRecords.filter(a => a.status === 'Present');
+    const totalEngagement = attendedRecords.reduce((sum, record) => 
+      sum + (record.engagementScore || 0), 0
+    );
+    const averageEngagement = attendedRecords.length > 0 
+      ? (totalEngagement / attendedRecords.length)
+      : 0;
+
     // Additional stats
     const totalAbsences = totalClasses - classesAttended;
     const averagePresenceDuration = attendanceRecords.length > 0
@@ -51,12 +60,14 @@ router.get('/:studentId', async (req, res) => {
       classesAttended: classesAttended,
       classesAbsent: totalAbsences,
       efficiency: parseFloat(efficiency.toFixed(2)),
+      averageEngagement: parseFloat(averageEngagement.toFixed(2)),
       averagePresenceDuration: parseFloat(averagePresenceDuration.toFixed(2)),
       attendanceRecords: attendanceRecords.map(a => ({
         date: a.date,
         status: a.status,
         presenceDuration: a.presenceDuration,
-        className: a.className
+        className: a.className,
+        engagementScore: a.engagementScore || 0
       }))
     });
   } catch (error) {
@@ -90,6 +101,15 @@ router.get('/', async (req, res) => {
         const classesAttended = attendanceRecords.filter(a => a.status === 'Present').length;
         const efficiency = totalClasses > 0 ? (classesAttended / totalClasses) * 100 : 0;
 
+        // Calculate average engagement (only for attended classes)
+        const attendedRecords = attendanceRecords.filter(a => a.status === 'Present');
+        const totalEngagement = attendedRecords.reduce((sum, record) => 
+          sum + (record.engagementScore || 0), 0
+        );
+        const averageEngagement = attendedRecords.length > 0 
+          ? (totalEngagement / attendedRecords.length)
+          : 0;
+
         return {
           studentId: student._id,
           studentName: student.name,
@@ -97,7 +117,9 @@ router.get('/', async (req, res) => {
           className: student.className,
           totalClasses: totalClasses,
           classesAttended: classesAttended,
-          efficiency: parseFloat(efficiency.toFixed(2))
+          classesAbsent: totalClasses - classesAttended,
+          efficiency: parseFloat(efficiency.toFixed(2)),
+          averageEngagement: parseFloat(averageEngagement.toFixed(2))
         };
       })
     );
@@ -121,16 +143,8 @@ router.get('/roll/:rollNumber', async (req, res) => {
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Redirect to student ID endpoint
+    // Build query
     const { className, startDate, endDate } = req.query;
-    let url = `/api/efficiency/${student._id}`;
-    const params = [];
-    if (className) params.push(`className=${className}`);
-    if (startDate) params.push(`startDate=${startDate}`);
-    if (endDate) params.push(`endDate=${endDate}`);
-    if (params.length > 0) url += '?' + params.join('&');
-
-    // Use the same logic as the studentId endpoint
     let query = { studentId: student._id };
     if (className) query.className = className;
     if (startDate && endDate) {
@@ -142,6 +156,15 @@ router.get('/roll/:rollNumber', async (req, res) => {
     const classesAttended = attendanceRecords.filter(a => a.status === 'Present').length;
     const efficiency = totalClasses > 0 ? (classesAttended / totalClasses) * 100 : 0;
 
+    // Calculate average engagement (only for attended classes)
+    const attendedRecords = attendanceRecords.filter(a => a.status === 'Present');
+    const totalEngagement = attendedRecords.reduce((sum, record) => 
+      sum + (record.engagementScore || 0), 0
+    );
+    const averageEngagement = attendedRecords.length > 0 
+      ? (totalEngagement / attendedRecords.length)
+      : 0;
+
     res.json({
       studentId: student._id,
       studentName: student.name,
@@ -150,7 +173,15 @@ router.get('/roll/:rollNumber', async (req, res) => {
       totalClasses: totalClasses,
       classesAttended: classesAttended,
       classesAbsent: totalClasses - classesAttended,
-      efficiency: parseFloat(efficiency.toFixed(2))
+      efficiency: parseFloat(efficiency.toFixed(2)),
+      averageEngagement: parseFloat(averageEngagement.toFixed(2)),
+      attendanceRecords: attendanceRecords.map(a => ({
+        date: a.date,
+        status: a.status,
+        presenceDuration: a.presenceDuration,
+        className: a.className,
+        engagementScore: a.engagementScore || 0
+      }))
     });
   } catch (error) {
     console.error('Get efficiency by roll error:', error);
@@ -159,4 +190,3 @@ router.get('/roll/:rollNumber', async (req, res) => {
 });
 
 module.exports = router;
-
